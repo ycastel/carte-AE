@@ -6,12 +6,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
 body { margin:0; font-family:Segoe UI, Arial; }
 #map { height:100vh; }
 .header {
-    position:absolute; top:15px; left:15px; z-index:1000;
+    position:absolute; top:15px; left:60px; z-index:1000;
     background:white; padding:12px 18px; border-radius:12px;
     box-shadow:0 4px 12px rgba(0,0,0,0.3);
     font-size:20px; font-weight:bold;
@@ -28,6 +30,8 @@ body { margin:0; font-family:Segoe UI, Arial; }
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
 
 <script>
 // =======================
@@ -35,61 +39,66 @@ body { margin:0; font-family:Segoe UI, Arial; }
 // =======================
 var map = L.map('map').setView([43.8, 6.3], 8);
 
-// Couches OpenStreetMap
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:'© OpenStreetMap'
+// Couches Relief et Satellite
+var relief = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap' });
+var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' }).addTo(map);
+
+L.control.layers({
+    "Relief": relief,
+    "Satellite": satellite
 }).addTo(map);
 
 // =======================
-// DONNEES INTEGREES
+// CLUSTER
 // =======================
-var donnees = [
-["Ecole Eugène Vial","11 avenue Saint-Louis","6150","Cannes",1,0,"http://cpieazur.fr/",1024386.7785000000,6281301.2086],
-["Collège Port-Lympia","31  bouvelard Stalingrad","6300","Nice",1,0,"https://www.mermontagne.org/",1045505.1766000000,6298064.608100000],
-["Ecole Marcel Pagnol","136 avenue Maurice Chevalier","6150","Cannes",1,1,"http://cpieazur.fr/",1020006.5127000000,6282089.3682],
-["Ecole Paul Langevin","237 rue Joliot Curie Ste Marguerite","83130","La Garde",1,1,"https://www.chercheursenherbe.com/",943471.9196999970,6228165.889800000],
-["EEPU Charles Sandro","rue Pellegrin","83220","Le Pradet",1,1,"https://naturoscope.fr/",946585.261500001,6227524.4717000000],
-["Collège Villeneuve","rue de la Tourrache","83600","Fréjus",1,0,"https://esterelcotedazur-agglo.fr/",1002021.2235000000,6265937.892300000],
-["Collège Louis Clément","4 rue Marc Baron","83430","Saint Mandrier-sur-Mer",1,0,"https://www.ville-saintmandrier.fr/",938580.9896000030,6223974.7392],
-["Ecole primaire La Croix Valmer","rue Frédéric Mistral","83420","La Croix Valmer",1,0,"",989819.996299997,6241169.391000000],
-["Ecole Elémentaire Ernest Camail","rue Anatole France","83530","Saint-Raphaël",1,0,"https://esterelcotedazur-agglo.fr/",1008787.6337000000,6266262.2487],
-["Ecole André Malraux","6 avenue Winston Churchill","6320","Cap d'Ail",1,0,"https://www.mermontagne.org/",1055036.2504000000,6301396.335700000],
-["Collège Jean Médecin de Sospel","40 route de l'Agaisen","6380","Sospel",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-accueillir/leducation-lenvironnement-et-au-developpement-8",1057413.0562000000,6319030.917800000],
-["Collège les Bréguières","1. Avenue Saint-Exupéry","6800","Cagnes sur Mer",1,0,"https://www.clubmoana.fr/",1035424.7061000000,6293556.4584],
-["Ecole primaire Joseph Ducret","Route de Brignoles","83136","Méounes-les-Montrieux",0,1,"https://www.spece.fr/",941118.4394999970,6247016.584800000],
-["Collège Guy de Maupassant","Avenue du Docteur Francis Bosio","83136","Garéoult",0,1,"https://museum.var.fr/ws/home/app/collection/expo",946821.8840000030,6251878.719900000],
-["Ecole Saint-Barthélémy","25 Avenue saint Barthélémy","6200","Nice",1,0,"https://www.mermontagne.org/",1042851.113000000,6300267.201400000],
-["Ecole Blaise Pascal","Place Jean Emeric","83136","Néoules",0,1,"https://www.spece.fr/",944547.0694999990,6250327.698600000],
-["Ecole primaire Jean Jaurès","Rue Jean Jaurès","83340","Le Luc",0,1,"https://www.spece.fr/",968793.6525999980,6260625.925500000],
-["Ecole élémentaire Moulin","200 Rue René Cassin","6540","Breil-sur-Roya",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-accueillir/leducation-lenvironnement-et-au-developpement-8",1062246.6710000000,6326044.9967],
-["Ecole primaire de Théoule sur Mer","14 rue Léon Montier","6590","Théoule-sur-Mer",1,0,"https://naturdive.com/",1018558.1006000000,6275474.774900000],
-["Collège Les Mimosas","1216 avenue Général Garbay","6210","Mandelieu-la-Napoule",1,0,"https://www.mermontagne.org/",1018278.7383000000,6281998.5206000000],
-["Collège Henri Matisse","2 avenue Seilern","6000","Nice",0,1,"https://univ-cotedazur.fr/",1044158.8662,6300882.327500000],
-["Ecole élémentaire Ariane Pagnol","5 avenue Général Olry","6300","Nice",1,0,"https://naturdive.com/",1046279.0651000000,6302731.741700000],
-["Institution Saint-Joseph Carnolès","191 avenue Aristide Briand","6190","Roquebrune-Cap-Martin",1,0,"https://www.ade-mediterranee.org/page/2043940-accueil",1060846.8748000000,6306462.9461],
-// … continue toutes les autres lignes CSV ici …
+var clusterGroup = L.markerClusterGroup();
+
+// =======================
+// PROJ4 : Lambert 93 -> WGS84
+// =======================
+proj4.defs("EPSG:2154","+proj=lcc +lat_1=49.0 +lat_2=44.0 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs");
+var lambert93 = "EPSG:2154";
+var wgs84 = "EPSG:4326";
+
+// =======================
+// DONNEES
+// =======================
+var data = [
+  {Nom_ecole:"Ecole Eugène Vial",AME2024:1,ATE2024:0,site_web:"http://cpieazur.fr/",lon:1024386.7785,lat:6281301.2086},
+  {Nom_ecole:"Collège Port-Lympia",AME2024:1,ATE2024:0,site_web:"https://www.mermontagne.org/",lon:1045505.1766,lat:6298064.6081},
+  {Nom_ecole:"Ecole Marcel Pagnol",AME2024:1,ATE2024:1,site_web:"http://cpieazur.fr/",lon:1020006.5127,lat:6282089.3682},
+  {Nom_ecole:"Ecole Paul Langevin",AME2024:1,ATE2024:1,site_web:"https://www.chercheursenherbe.com/",lon:943471.919699997,lat:6228165.8898},
+  {Nom_ecole:"EEPU Charles Sandro",AME2024:1,ATE2024:1,site_web:"https://naturoscope.fr/",lon:946585.2615,lat:6227524.4717},
+  {Nom_ecole:"Collège Villeneuve",AME2024:1,ATE2024:0,site_web:"https://esterelcotedazur-agglo.fr/",lon:1002021.2235,lat:6265937.8923},
+  {Nom_ecole:"Collège Louis Clément",AME2024:1,ATE2024:0,site_web:"https://www.ville-saintmandrier.fr/",lon:938580.9896,lat:6223974.7392},
+  {Nom_ecole:"Ecole primaire La Croix Valmer",AME2024:1,ATE2024:0,site_web:"",lon:989819.9963,lat:6241169.391},
+  {Nom_ecole:"Ecole Elémentaire Ernest Camail",AME2024:1,ATE2024:0,site_web:"https://esterelcotedazur-agglo.fr/",lon:1008787.6337,lat:6266262.2487},
+  {Nom_ecole:"Ecole André Malraux",AME2024:1,ATE2024:0,site_web:"https://www.mermontagne.org/",lon:1055036.2504,lat:6301396.3357},
+  {Nom_ecole:"Collège Jean Médecin de Sospel",AME2024:0,ATE2024:1,site_web:"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-accueillir/leducation-lenvironnement-et-au-developpement-8",lon:1057413.0562,lat:6319030.9178},
+  {Nom_ecole:"Collège les Bréguières",AME2024:1,ATE2024:0,site_web:"https://www.clubmoana.fr/",lon:1035424.7061,lat:6293556.4584},
+  {Nom_ecole:"Ecole primaire Joseph Ducret",AME2024:0,ATE2024:1,site_web:"https://www.spece.fr/",lon:941118.4395,lat:6247016.5848},
+  {Nom_ecole:"Collège Guy de Maupassant",AME2024:0,ATE2024:1,site_web:"https://museum.var.fr/ws/home/app/collection/expo",lon:946821.884,lat:6251878.7199},
+  {Nom_ecole:"Ecole Saint-Barthélémy",AME2024:1,ATE2024:0,site_web:"https://www.mermontagne.org/",lon:1042851.113,lat:6300267.2014},
+  // ... continue avec toutes les lignes restantes du CSV
 ];
 
 // =======================
-// AJOUT DES POINTS SUR LA CARTE
+// AJOUT DES MARQUEURS
 // =======================
-donnees.forEach(function(d){
-    var nom = d[0], adresse=d[1], cp=d[2], commune=d[3], ame=d[4], ate=d[5], site=d[6], lon=d[7], lat=d[8];
+data.forEach(function(d){
+    var coords = proj4(lambert93,wgs84,[d.lon,d.lat]);
+    var popup = "<b>"+d.Nom_ecole+"</b><br>"+
+                (d.site_web ? "<a href='"+d.site_web+"' target='_blank'>Site web</a>" : "");
 
-    var popup = "<b>"+nom+"</b><br>"+adresse+"<br>"+cp+" "+commune+"<br>"+
-                (site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "");
+    var color = d.AME2024 ? "#007bff" : (d.ATE2024 ? "#28a745" : "#888");
+    var marker = L.circleMarker([coords[1],coords[0]],{
+        radius:8, fillColor: color, color:"white", weight:1, fillOpacity:0.9
+    }).bindPopup(popup);
 
-    var couleur = ame ? "#007bff" : "#28a745"; // bleu=AME, vert=ATE
-    if(!ame && !ate) couleur = "#999"; // cas aucun
-
-    L.circleMarker([lat, lon], {
-        radius:6,
-        fillColor:couleur,
-        color:"white",
-        weight:1,
-        fillOpacity:0.9
-    }).bindPopup(popup).addTo(map);
+    clusterGroup.addLayer(marker);
 });
+
+map.addLayer(clusterGroup);
 
 // =======================
 // LEGENDE
@@ -103,7 +112,7 @@ legend.onAdd = function(){
     return div;
 };
 legend.addTo(map);
-</script>
 
+</script>
 </body>
 </html>
