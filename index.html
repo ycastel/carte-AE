@@ -1,68 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Carte des écoles</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<title>Aires éducatives — Académie de Nice</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Leaflet CSS et JS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-    <!-- PapaParse pour lire le CSV -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-
-    <style>
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
-        #map { width: 100%; height: 100%; }
-    </style>
+<style>
+body { margin:0; font-family:Segoe UI, Arial; }
+#map { height:100vh; }
+.header {
+    position:absolute; top:15px; left:15px; z-index:1000;
+    background:white; padding:12px 18px; border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    font-size:20px; font-weight:bold;
+}
+.legend {
+    background:white; padding:10px; border-radius:10px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+</style>
 </head>
+
 <body>
-    <div id="map"></div>
+<div class="header">Académie de Nice — Aires éducatives</div>
+<div id="map"></div>
 
-    <script>
-        // Création de la carte centrée sur la région PACA
-        var map = L.map('map').setView([43.7, 6.5], 8);
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-        // Fond de carte OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+<script>
+// =======================
+// INITIALISATION CARTE
+// =======================
+var map = L.map('map').setView([43.8, 6.3], 8);
 
-        // URL du CSV sur GitHub Pages
-        var csvUrl = "https://ycastel.github.io/carte-AE/donnees.csv";
+// Couches OpenStreetMap
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap'
+}).addTo(map);
 
-        // Lecture du CSV
-        Papa.parse(csvUrl, {
-            download: true,
-            header: true,
-            dynamicTyping: true, // convertit automatiquement lat/lon en nombres
-            complete: function(results) {
-                results.data.forEach(function(row) {
-                    if (!row.lat || !row.lon) return; // ignorer les lignes vides
+// =======================
+// DONNEES INTEGREES
+// =======================
+var donnees = [
+["Ecole Eugène Vial","11 avenue Saint-Louis","6150","Cannes",1,0,"http://cpieazur.fr/",1024386.7785000000,6281301.2086],
+["Collège Port-Lympia","31  bouvelard Stalingrad","6300","Nice",1,0,"https://www.mermontagne.org/",1045505.1766000000,6298064.608100000],
+["Ecole Marcel Pagnol","136 avenue Maurice Chevalier","6150","Cannes",1,1,"http://cpieazur.fr/",1020006.5127000000,6282089.3682],
+["Ecole Paul Langevin","237 rue Joliot Curie Ste Marguerite","83130","La Garde",1,1,"https://www.chercheursenherbe.com/",943471.9196999970,6228165.889800000],
+["EEPU Charles Sandro","rue Pellegrin","83220","Le Pradet",1,1,"https://naturoscope.fr/",946585.261500001,6227524.4717000000],
+["Collège Villeneuve","rue de la Tourrache","83600","Fréjus",1,0,"https://esterelcotedazur-agglo.fr/",1002021.2235000000,6265937.892300000],
+["Collège Louis Clément","4 rue Marc Baron","83430","Saint Mandrier-sur-Mer",1,0,"https://www.ville-saintmandrier.fr/",938580.9896000030,6223974.7392],
+["Ecole primaire La Croix Valmer","rue Frédéric Mistral","83420","La Croix Valmer",1,0,"",989819.996299997,6241169.391000000],
+["Ecole Elémentaire Ernest Camail","rue Anatole France","83530","Saint-Raphaël",1,0,"https://esterelcotedazur-agglo.fr/",1008787.6337000000,6266262.2487],
+["Ecole André Malraux","6 avenue Winston Churchill","6320","Cap d'Ail",1,0,"https://www.mermontagne.org/",1055036.2504000000,6301396.335700000],
+["Collège Jean Médecin de Sospel","40 route de l'Agaisen","6380","Sospel",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-accueillir/leducation-lenvironnement-et-au-developpement-8",1057413.0562000000,6319030.917800000],
+["Collège les Bréguières","1. Avenue Saint-Exupéry","6800","Cagnes sur Mer",1,0,"https://www.clubmoana.fr/",1035424.7061000000,6293556.4584],
+["Ecole primaire Joseph Ducret","Route de Brignoles","83136","Méounes-les-Montrieux",0,1,"https://www.spece.fr/",941118.4394999970,6247016.584800000],
+["Collège Guy de Maupassant","Avenue du Docteur Francis Bosio","83136","Garéoult",0,1,"https://museum.var.fr/ws/home/app/collection/expo",946821.8840000030,6251878.719900000],
+["Ecole Saint-Barthélémy","25 Avenue saint Barthélémy","6200","Nice",1,0,"https://www.mermontagne.org/",1042851.113000000,6300267.201400000],
+["Ecole Blaise Pascal","Place Jean Emeric","83136","Néoules",0,1,"https://www.spece.fr/",944547.0694999990,6250327.698600000],
+["Ecole primaire Jean Jaurès","Rue Jean Jaurès","83340","Le Luc",0,1,"https://www.spece.fr/",968793.6525999980,6260625.925500000],
+["Ecole élémentaire Moulin","200 Rue René Cassin","6540","Breil-sur-Roya",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-accueillir/leducation-lenvironnement-et-au-developpement-8",1062246.6710000000,6326044.9967],
+["Ecole primaire de Théoule sur Mer","14 rue Léon Montier","6590","Théoule-sur-Mer",1,0,"https://naturdive.com/",1018558.1006000000,6275474.774900000],
+["Collège Les Mimosas","1216 avenue Général Garbay","6210","Mandelieu-la-Napoule",1,0,"https://www.mermontagne.org/",1018278.7383000000,6281998.5206000000],
+["Collège Henri Matisse","2 avenue Seilern","6000","Nice",0,1,"https://univ-cotedazur.fr/",1044158.8662,6300882.327500000],
+["Ecole élémentaire Ariane Pagnol","5 avenue Général Olry","6300","Nice",1,0,"https://naturdive.com/",1046279.0651000000,6302731.741700000],
+["Institution Saint-Joseph Carnolès","191 avenue Aristide Briand","6190","Roquebrune-Cap-Martin",1,0,"https://www.ade-mediterranee.org/page/2043940-accueil",1060846.8748000000,6306462.9461],
+// … continue toutes les autres lignes CSV ici …
+];
 
-                    // Création du marker
-                    var marker = L.circleMarker([row.lat, row.lon], {
-                        color: "blue",
-                        fillColor: "blue",
-                        fillOpacity: 0.8,
-                        radius: 6
-                    }).addTo(map);
+// =======================
+// AJOUT DES POINTS SUR LA CARTE
+// =======================
+donnees.forEach(function(d){
+    var nom = d[0], adresse=d[1], cp=d[2], commune=d[3], ame=d[4], ate=d[5], site=d[6], lon=d[7], lat=d[8];
 
-                    // Popup avec infos
-                    var popupHtml = `
-                        <b>${row.Nom_ecole}</b><br>
-                        ${row.Adresse}<br>
-                        ${row.CP} ${row.Commune}<br>
-                        ${row.site_web ? `<a href="${row.site_web}" target="_blank">Site web</a>` : 'Pas de site web'}
-                    `;
-                    marker.bindPopup(popupHtml);
-                });
-            },
-            error: function(err) {
-                console.error("Erreur de chargement du CSV :", err);
-            }
-        });
-    </script>
+    var popup = "<b>"+nom+"</b><br>"+adresse+"<br>"+cp+" "+commune+"<br>"+
+                (site ? "<a href='"+site+"' target='_blank'>Site web</a>" : "");
+
+    var couleur = ame ? "#007bff" : "#28a745"; // bleu=AME, vert=ATE
+    if(!ame && !ate) couleur = "#999"; // cas aucun
+
+    L.circleMarker([lat, lon], {
+        radius:6,
+        fillColor:couleur,
+        color:"white",
+        weight:1,
+        fillOpacity:0.9
+    }).bindPopup(popup).addTo(map);
+});
+
+// =======================
+// LEGENDE
+// =======================
+var legend = L.control({position:"bottomright"});
+legend.onAdd = function(){
+    var div = L.DomUtil.create("div","legend");
+    div.innerHTML = "<b>Légende</b><br>"+
+                    "<span style='color:#007bff;'>●</span> AME<br>"+
+                    "<span style='color:#28a745;'>●</span> ATE";
+    return div;
+};
+legend.addTo(map);
+</script>
+
 </body>
 </html>
