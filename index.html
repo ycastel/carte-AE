@@ -6,8 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
   body { margin:0; font-family:Segoe UI, Arial; }
@@ -18,10 +16,10 @@
       box-shadow:0 4px 12px rgba(0,0,0,0.3);
       font-size:20px; font-weight:bold;
   }
-  /* Couleur cluster orange */
-  .marker-cluster-small { background-color: orange !important; }
-  .marker-cluster-medium { background-color: orange !important; }
-  .marker-cluster-large { background-color: orange !important; }
+  /* atténuation douce du relief */
+  .leaflet-tile-pane {
+      opacity:0.70;
+  }
 </style>
 </head>
 <body>
@@ -30,7 +28,6 @@
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
 
 <script>
@@ -39,7 +36,7 @@
 // =======================
 var map = L.map('map').setView([43.75, 6.35], 8);
 
-// Couches
+// Relief atténué
 var relief = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
   attribution:'© OpenTopoMap'
 }).addTo(map);
@@ -54,13 +51,6 @@ L.control.layers({
     "Satellite": satellite
 }).addTo(map);
 
-// Cluster orange
-var cluster = L.markerClusterGroup({
-  spiderfyOnMaxZoom: true,
-  showCoverageOnHover: false,
-  zoomToBoundsOnClick: true
-});
-
 // =======================
 // PROJ4 pour Lambert93 → WGS84
 // =======================
@@ -69,91 +59,92 @@ var lambert93 = "EPSG:2154";
 var wgs84 = "EPSG:4326";
 
 // =======================
-// DONNEES (69 projets)
+// DONNEES (69 points)
 // =======================
-// Même tableau "points" que précédemment
 var points = [
-["Ecole Eugène Vial","Cannes",1,0,"http://cpieazur.fr/",1024386.7785,6281301.2086],
-["Collège Port-Lympia","Nice",1,0,"https://www.mermontagne.org/",1045505.1766,6298064.6081],
-["Ecole Marcel Pagnol","Cannes",1,1,"http://cpieazur.fr/",1020006.5127,6282089.3682],
-["Ecole Paul Langevin","La Garde",1,1,"https://www.chercheursenherbe.com/",943471.9197,6228165.8898],
-["EEPU Charles Sandro","Le Pradet",1,1,"https://naturoscope.fr/",946585.2615,6227524.4717],
-["Collège Villeneuve","Fréjus",1,0,"https://esterelcotedazur-agglo.fr/",1002021.2235,6265937.8923],
-["Collège Louis Clément","Saint Mandrier-sur-Mer",1,0,"https://www.ville-saintmandrier.fr/",938580.9896,6223974.7392],
-["Ecole primaire La Croix Valmer","La Croix Valmer",1,0,"",989819.9963,6241169.391],
-["Ecole Elémentaire Ernest Camail","Saint-Raphaël",1,0,"https://esterelcotedazur-agglo.fr/",1008787.6337,6266262.2487],
-["Ecole André Malraux","Cap d'Ail",1,0,"https://www.mermontagne.org/",1055036.2504,6301396.3357],
-["Collège Jean Médecin de Sospel","Sospel",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8",1057413.0562,6319030.9178],
-["Collège les Bréguières","Cagnes sur Mer",1,0,"https://www.clubmoana.fr/",1035424.7061,6293556.4584],
-["Ecole primaire Joseph Ducret","Méounes-les-Montrieux",0,1,"https://www.spece.fr/",941118.4395,6247016.5848],
-["Collège Guy de Maupassant","Garéoult",0,1,"https://museum.var.fr/ws/home/app/collection/expo",946821.8840,6251878.7199],
-["Ecole Saint-Barthélémy","Nice",1,0,"https://www.mermontagne.org/",1042851.113,6300267.2014],
-["Ecole Blaise Pascal","Néoules",0,1,"https://www.spece.fr/",944547.0695,6250327.6986],
-["Ecole primaire Jean Jaurès","Le Luc",0,1,"https://www.spece.fr/",968793.6526,6260625.9255],
-["Ecole élémentaire Moulin","Breil-sur-Roya",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8",1062246.671,6326044.9967],
-["Ecole primaire de Théoule sur Mer","Théoule-sur-Mer",1,0,"https://naturdive.com/",1018558.1006,6275474.7749],
-["Collège Les Mimosas","Mandelieu-la-Napoule",1,0,"https://www.mermontagne.org/",1018278.7383,6281998.5206],
-["Collège Henri Matisse","Nice",0,1,"https://univ-cotedazur.fr/",1044158.8662,6300882.3275],
-["Ecole élémentaire Ariane Pagnol","Nice",1,0,"https://naturdive.com/",1046279.0651,6302731.7417],
-["Institution Saint-Joseph Carnolès","Roquebrune-Cap-Martin",1,0,"https://www.ade-mediterranee.org/page/2043940-accueil",1060846.8748,6306462.9461],
-["Collège Henri Nans","Aups",0,1,"https://parcduverdon.fr/fr/education-au-territoire/nos-projets",960445.0456,6286530.0481],
-["Collège Pierre de Coubertin","Le Luc",0,1,"https://www.spece.fr/",968863.1618,6260319.5584],
-["Collège Joseph d'Arbaud","Barjols",0,1,"https://www.maisonregionaledeleau.org/",943106.1135,6278418.0767],
-["Collège Moulin Blanc","Saint-Tropez",1,0,"https://www.golfe-sainttropez.fr/",998522.6773,6247301.6539],
-["Ecole primaire Jean Moulin","Signes",0,1,"https://www.spece.fr/",932552.6407,6247679.7181],
-["Ecole primaire Jean Aicard","La Garde",0,1,"https://www.chercheursenherbe.com/",945487.0198,6229757.3107],
-["Ecole primaire Docteur Varenne","Collobrières",0,1,"https://www.spece.fr/",968986.6463,6243079.9874],
-["Ecole primaire Balzac-Flaubert","Fréjus",1,0,"https://esterelcotedazur-agglo.fr/",1001011.7262,6259555.3898],
-["Ecole primaire Jean Janin","Roquebrune-sur-Argens",1,0,"https://esterelcotedazur-agglo.fr/",994709.097,6267319.7701],
-["Ecole élémentaire Fragonard","Peymeinade",0,1,"https://www.mediterranee2000.org/",1012696.0232,6290174.6611],
-["Ecole primaire Fulconis","Saint-Martin-Vésubie",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8",1040412.8849,6339791.7027],
-["Ecole primaire Paul Roux","Fréjus",1,0,"https://esterelcotedazur-agglo.fr/",1001635.3292,6269240.8255],
-["Ecole primaire La Roseraie","Cavalaire-sur-Mer",1,0,"https://www.golfe-sainttropez.fr/",986715.5537,6237045.4967],
-["Ecole primaire Maurin Des Maures","Les Mayons",0,1,"https://www.spece.fr/",972382.3837,6252199.1754],
-["Collège Bellevue","Beausoleil",1,0,"https://www.mermontagne.org/",1055850.7941,6303477.4148],
-["Ecole élémentaire Daluis","Daluis",0,1,"https://paca.lpo.fr/",1005284.4518,6332318.553],
-["Ecole primaire privée Notre-Dame du Sacré-Coeur","Menton",1,0,"https://www.ade-mediterranee.org/page/2043940-accueil",1062130.0207,6307490.2495],
-["Ecole élémentaire Papon","Nice",1,0,"https://www.remed-zero-plastique.org/structures/bleu-gorgone-nice",1045020.2819,6298540.4439],
-["Ecole élémentaire Caucade","Nice",1,0,"https://www.mermontagne.org/",1039535.3796,6295621.8721],
-["Ecole primaire La Bouverie","Roquebrune-sur-Argens",0,1,"https://www.marjorieautresregards.com/",994809.9261,6273362.6058],
-["Ecole primaire la Deidiere","Saint-Cyr-sur-Mer",1,0,"https://www.chercheursenherbe.com/",920816.273,6235445.1742],
-["Ecole primaire Paul Barles","Saint-Maximin-la-Sainte-Baume",0,1,"https://www.cauevar.fr/",931588.0243,6264826.9133],
-["Ecole primaire de Tende","Tende",0,1,"https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8",1067749.7942,6342856.2159],
-["Ecole primaire Brunet 2","Toulon",0,1,"https://www.chercheursenherbe.com/",941213.5475,6229929.7959],
-["Ecole primaire du Coulet","Tourrettes",0,1,"https://www.planete-sciences.org/",999106.2568,6286828.5543],
-["Ecole primaire Villecroze","Villecroze",0,1,"",964593.6051,6281528.6231],
-["Ecole élémentaire Campagno","Le Tignet",0,1,"https://paca.lpo.fr/",1010115.029,6288759.6341],
-["Collège Guillaume Vento","Menton",1,0,"https://www.riviera-francaise.fr/",1061723.8402,6307391.903],
-["Ecole primaire Les Salins d'Hyères","Hyères",1,0,"",960515.2816,6229442.4682],
-["Ecole primaire Les Iles d'Or","Hyères",0,1,"",954119.7777,6229456.5719],
-["Ecole primaire Pont-Neuf","Toulon",0,1,"https://www.chercheursenherbe.com/",936115.6462,6229798.4594],
-["Ecole primaire Aristide Briand","Barjols",0,1,"",942931.7686,6278529.7749],
-["Ecole primaire Les Moulins","Castagniers",0,1,"https://ecole.ac-nice.fr/carros/castagniersmoulins/",1039180.6123,6308055.2411],
-["Ecole primaire Chateaudouble","Châteaudouble",0,1,"",978633.3801,6283638.4002],
-["Collège les Chênes","Fréjus",0,1,"http://www.ac-nice.fr/college-chenes/",1002866.8739,6266917.7124],
-["Ecole primaire Marcel Pagnol","Le Pradet",1,0,"",945560.2279,6228024.53],
-["Ecole primaire Ronchèse","Nice",1,0,"",1043925.315,6298712.0482],
-["Ecole primaire privée Saint Joseph","Nice",1,0,"",1045138.2609,6298558.089],
-["Lycée Jean Aicard","Hyères",1,0,"https://www.lyc-jean-aicard.ac-nice.fr/",954514.2846,6229405.1467],
-["Ecole maternelle La Planquette","La Garde",0,1,"",945934.4674,6230649.5642],
-["Collège Marie Curie","La Seyne-sur-Mer",1,0,"http://www.collegemariecurie.net",933955.6903,6226823.0142],
-["Lycée du Val d'Argens","Le Muy",0,1,"https://www.lyc-val-d-argens.ac-nice.fr/",987001.6753,6270131.6017],
-["Collège Ségurane","Nice",1,0,"http://www.ac-nice.fr/segurane",1044955.2841,6298306.9411],
-["Ecole primaire Louis Clément","Saint-Mandrier-sur-Mer",1,0,"",938520.5263,6223997.2905],
-["Ecole primaire Les Moulins","Toulon",0,1,"",937180.1337,6232394.7438],
-["Ecole élémentaire Ile Verte","Valbonne",0,1,"",1026760.8158,6291118.1361]
+  { nom: "Ecole Eugène Vial", ville: "Cannes", lat: 6281301.2086, lon: 1024386.7785, type: "AME", site: "http://cpieazur.fr/" },
+  { nom: "Collège Port-Lympia", ville: "Nice", lat: 6298064.6081, lon: 1045505.1766, type: "AME", site: "https://www.mermontagne.org/" },
+  { nom: "Ecole Marcel Pagnol", ville: "Cannes", lat: 6282089.3682, lon: 1020006.5127, type: "AME", site: "http://cpieazur.fr/" },
+  { nom: "Ecole Paul Langevin", ville: "La Garde", lat: 6228165.8898, lon: 943471.9197, type: "ATE", site: "https://www.chercheursenherbe.com/" },
+  { nom: "EEPU Charles Sandro", ville: "Le Pradet", lat: 6227524.4717, lon: 946585.2615, type: "AME", site: "https://naturoscope.fr/" },
+  { nom: "Collège Villeneuve", ville: "Fréjus", lat: 6265937.8923, lon: 1002021.2235, type: "AME", site: "https://esterelcotedazur-agglo.fr/" },
+  { nom: "Collège Louis Clément", ville: "Saint Mandrier-sur-Mer", lat: 6223974.7392, lon: 938580.9896, type: "AME", site: "https://www.ville-saintmandrier.fr/" },
+  { nom: "Ecole primaire La Croix Valmer", ville: "La Croix Valmer", lat: 6241169.3910, lon: 989819.9963, type: "AME", site: "" },
+  { nom: "Ecole Elémentaire Ernest Camail", ville: "Saint-Raphaël", lat: 6266262.2487, lon: 1008787.6337, type: "AME", site: "https://esterelcotedazur-agglo.fr/" },
+  { nom: "Ecole André Malraux", ville: "Cap d'Ail", lat: 6301396.3357, lon: 1055036.2504, type: "AME", site: "https://www.mermontagne.org/" },
+  { nom: "Collège Jean Médecin de Sospel", ville: "Sospel", lat: 6319030.9178, lon: 1057413.0562, type: "ATE", site: "https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8" },
+  { nom: "Collège les Bréguières", ville: "Cagnes sur Mer", lat: 6293556.4584, lon: 1035424.7061, type: "AME", site: "https://www.clubmoana.fr/" },
+  { nom: "Ecole primaire Joseph Ducret", ville: "Méounes-les-Montrieux", lat: 6247016.5848, lon: 941118.4395, type: "ATE", site: "https://www.spece.fr/" },
+  { nom: "Collège Guy de Maupassant", ville: "Garéoult", lat: 6251878.7199, lon: 946821.8840, type: "ATE", site: "https://museum.var.fr/ws/home/app/collection/expo" },
+  { nom: "Ecole Saint-Barthélémy", ville: "Nice", lat: 6300267.2014, lon: 1042851.1130, type: "AME", site: "https://www.mermontagne.org/" },
+  { nom: "Ecole Blaise Pascal", ville: "Néoules", lat: 6250327.6986, lon: 944547.0695, type: "ATE", site: "https://www.spece.fr/" },
+  { nom: "Ecole primaire Jean Jaurès", ville: "Le Luc", lat: 6260625.9255, lon: 968793.6526, type: "ATE", site: "https://www.spece.fr/" },
+  { nom: "Ecole élémentaire Moulin", ville: "Breil-sur-Roya", lat: 6326044.9967, lon: 1062246.6710, type: "ATE", site: "https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8" },
+  { nom: "Ecole primaire de Théoule sur Mer", ville: "Théoule-sur-Mer", lat: 6275474.7749, lon: 1018558.1006, type: "AME", site: "https://naturdive.com/" },
+  { nom: "Collège Les Mimosas", ville: "Mandelieu-la-Napoule", lat: 6281998.5206, lon: 1018278.7383, type: "AME", site: "https://www.mermontagne.org/" },
+  { nom: "Collège Henri Matisse", ville: "Nice", lat: 6300882.3275, lon: 1044158.8662, type: "ATE", site: "https://univ-cotedazur.fr/" },
+  { nom: "Ecole élémentaire Ariane Pagnol", ville: "Nice", lat: 6302731.7417, lon: 1046279.0651, type: "AME", site: "https://naturdive.com/" },
+  { nom: "Institution Saint-Joseph Carnolès", ville: "Roquebrune-Cap-Martin", lat: 6306462.9461, lon: 1060846.8748, type: "AME", site: "https://www.ade-mediterranee.org/page/2043940-accueil" },
+  { nom: "Collège Henri Nans", ville: "Aups", lat: 6286530.0481, lon: 960445.0456, type: "ATE", site: "https://parcduverdon.fr/fr/education-au-territoire/nos-projets" },
+  { nom: "Collège Pierre de Coubertin", ville: "Le Luc", lat: 6260319.5584, lon: 968863.1618, type: "ATE", site: "https://www.spece.fr/" },
+  { nom: "Collège Joseph d'Arbaud", ville: "Barjols", lat: 6278418.0767, lon: 943106.1135, type: "ATE", site: "https://www.maisonregionaledeleau.org/" },
+  { nom: "Collège Moulin Blanc", ville: "Saint-Tropez", lat: 6247301.6539, lon: 998522.6773, type: "AME", site: "https://www.golfe-sainttropez.fr/" },
+  { nom: "Ecole primaire Jean Moulin", ville: "Signes", lat: 6247679.7181, lon: 932552.6407, type: "ATE", site: "https://www.spece.fr/" },
+  { nom: "Ecole primaire Jean Aicard", ville: "La Garde", lat: 6229757.3107, lon: 945487.0198, type: "ATE", site: "https://www.chercheursenherbe.com/" },
+  { nom: "Ecole primaire Docteur Varenne", ville: "Collobrières", lat: 6243079.9874, lon: 968986.6463, type: "ATE", site: "https://www.spece.fr/" },
+  { nom: "Ecole primaire Balzac-Flaubert", ville: "Fréjus", lat: 6259555.3898, lon: 1001011.7262, type: "AME", site: "https://esterelcotedazur-agglo.fr/" },
+  { nom: "Ecole primaire Jean Janin", ville: "Roquebrune-sur-Argens", lat: 6267319.7701, lon: 994709.0970, type: "AME", site: "https://esterelcotedazur-agglo.fr/" },
+  { nom: "Ecole élémentaire Fragonard", ville: "Peymeinade", lat: 6290174.6611, lon: 1012696.0232, type: "ATE", site: "https://www.mediterranee2000.org/" },
+  { nom: "Ecole primaire Fulconis", ville: "Saint-Martin-Vésubie", lat: 6339791.7027, lon: 1040412.8849, type: "ATE", site: "https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8" },
+  { nom: "Ecole primaire Paul Roux", ville: "Fréjus", lat: 6269240.8255, lon: 1001635.3292, type: "AME", site: "https://esterelcotedazur-agglo.fr/" },
+  { nom: "Ecole primaire La Roseraie", ville: "Cavalaire-sur-Mer", lat: 6237045.4967, lon: 986715.5537, type: "AME", site: "https://www.golfe-sainttropez.fr/" },
+  { nom: "Ecole primaire Maurin Des Maures", ville: "Les Mayons", lat: 6252199.1754, lon: 972382.3837, type: "ATE", site: "https://www.spece.fr/" },
+  { nom: "Collège Bellevue", ville: "Beausoleil", lat: 6303477.4148, lon: 1055850.7941, type: "AME", site: "https://www.mermontagne.org/" },
+  { nom: "Ecole élémentaire Daluis", ville: "Daluis", lat: 6332318.5530, lon: 1005284.4518, type: "ATE", site: "https://paca.lpo.fr/" },
+  { nom: "Ecole primaire privée Notre-Dame du Sacré-Coeur", ville: "Menton", lat: 6307490.2495, lon: 1062130.0207, type: "AME", site: "https://www.ade-mediterranee.org/page/2043940-accueil" },
+  { nom: "Ecole élémentaire Papon", ville: "Nice", lat: 6298540.4439, lon: 1045020.2819, type: "AME", site: "https://www.remed-zero-plastique.org/structures/bleu-gorgone-nice" },
+  { nom: "Ecole élémentaire Caucade", ville: "Nice", lat: 6295621.8721, lon: 1039535.3796, type: "AME", site: "https://www.mermontagne.org/" },
+  { nom: "Ecole primaire La Bouverie", ville: "Roquebrune-sur-Argens", lat: 6273362.6058, lon: 994809.9261, type: "ATE", site: "https://www.marjorieautresregards.com/" },
+  { nom: "Ecole primaire la Deidiere", ville: "Saint-Cyr-sur-Mer", lat: 6235445.1742, lon: 920816.2730, type: "AME", site: "https://www.chercheursenherbe.com/" },
+  { nom: "Ecole primaire Paul Barles", ville: "Saint-Maximin-la-Sainte-Baume", lat: 6264826.9133, lon: 931588.0243, type: "ATE", site: "https://www.cauevar.fr/" },
+  { nom: "Ecole primaire de Tende", ville: "Tende", lat: 6342856.2159, lon: 1067749.7942, type: "ATE", site: "https://www.mercantour-parcnational.fr/fr/des-actions/sensibiliser-eduquer-et-au-developpement-8" },
+  { nom: "Ecole primaire Brunet 2", ville: "Toulon", lat: 6229929.7959, lon: 941213.5475, type: "ATE", site: "https://www.chercheursenherbe.com/" },
+  { nom: "Ecole primaire du Coulet", ville: "Tourrettes", lat: 6286828.5543, lon: 999106.2568, type: "ATE", site: "https://www.planete-sciences.org/" },
+  { nom: "Ecole primaire Villecroze", ville: "Villecroze", lat: 6281528.6231, lon: 964593.6051, type: "ATE", site: "" },
+  { nom: "Ecole élémentaire Campagno", ville: "Le Tignet", lat: 6288759.6341, lon: 1010115.0290, type: "ATE", site: "https://paca.lpo.fr/" },
+  { nom: "Collège Guillaume Vento", ville: "Menton", lat: 6307391.9030, lon: 1061723.8402, type: "AME", site: "https://www.riviera-francaise.fr/" },
+  { nom: "Ecole primaire Les Salins d'Hyères", ville: "Hyères", lat: 6229442.4682, lon: 960515.2816, type: "AME", site: "" },
+  { nom: "Ecole primaire Les Iles d'Or", ville: "Hyères", lat: 6229456.5719, lon: 954119.7777, type: "ATE", site: "" },
+  { nom: "Ecole primaire Pont-Neuf", ville: "Toulon", lat: 6229798.4594, lon: 936115.6462, type: "ATE", site: "https://www.chercheursenherbe.com/" },
+  { nom: "Ecole primaire Aristide Briand", ville: "Barjols", lat: 6278529.7749, lon: 942931.7686, type: "ATE", site: "" },
+  { nom: "Ecole primaire Les Moulins", ville: "Castagniers", lat: 6308055.2411, lon: 1039180.6123, type: "ATE", site: "https://ecole.ac-nice.fr/carros/castagniersmoulins/" },
+  { nom: "Ecole primaire Chateaudouble", ville: "Châteaudouble", lat: 6283638.4002, lon: 978633.3801, type: "ATE", site: "" },
+  { nom: "Collège les Chênes", ville: "Fréjus", lat: 6266917.7124, lon: 1002866.8739, type: "ATE", site: "http://www.ac-nice.fr/college-chenes/" },
+  { nom: "Ecole primaire Marcel Pagnol", ville: "Le Pradet", lat: 6228024.5301, lon: 945560.2279, type: "AME", site: "" },
+  { nom: "Ecole primaire Ronchèse", ville: "Nice", lat: 6298712.0482, lon: 1043925.3150, type: "AME", site: "" },
+  { nom: "Ecole primaire privée Saint Joseph", ville: "Nice", lat: 6298558.0890, lon: 1045138.2609, type: "AME", site: "" },
+  { nom: "Lycée Jean Aicard", ville: "Hyères", lat: 6229405.1467, lon: 954514.2846, type: "AME", site: "https://www.lyc-jean-aicard.ac-nice.fr/" },
+  { nom: "Ecole maternelle La Planquette", ville: "La Garde", lat: 6230649.5642, lon: 945934.4674, type: "ATE", site: "" },
+  { nom: "Collège Marie Curie", ville: "La Seyne-sur-Mer", lat: 6226823.0142, lon: 933955.6903, type: "AME", site: "http://www.collegemariecurie.net" },
+  { nom: "Lycée du Val d'Argens", ville: "Le Muy", lat: 6270131.6017, lon: 987001.6753, type: "ATE", site: "https://www.lyc-val-d-argens.ac-nice.fr/" },
+  { nom: "Collège Ségurane", ville: "Nice", lat: 6298306.9411, lon: 1044955.2841, type: "AME", site: "http://www.ac-nice.fr/segurane" },
+  { nom: "Ecole primaire Louis Clément", ville: "Saint-Mandrier-sur-Mer", lat: 6223997.2905, lon: 938520.5263, type: "AME", site: "" },
+  { nom: "Ecole primaire Les Moulins", ville: "Toulon", lat: 6232394.7438, lon: 937180.1337, type: "ATE", site: "" },
+  { nom: "Ecole élémentaire Ile Verte", ville: "Valbonne", lat: 6291118.1361, lon: 1026760.8158, type: "ATE", site: "" }
 ];
 
 // =======================
 // AFFICHAGE DES POINTS
 // =======================
 points.forEach(function(p){
-  var xy = proj4(lambert93, wgs84, [p[5], p[6]]);
+  var xy = proj4(lambert93, wgs84, [p.lon, p.lat]);
   var lat = xy[1], lon = xy[0];
 
-  var color = "purple";   // AME+ATE
-  if(p[2] && !p[3]) color = "#003366";   // AME foncé
-  else if(!p[2] && p[3]) color = "#006600"; // ATE foncé
+  // couleurs selon type
+  var color;
+  if(p.type === "AME") color = "#3399FF";       // bleu
+  else if(p.type === "ATE") color = "#33CC33";  // vert
+  else if(p.type === "AME/ATE") color = "#3399FF"; // bleu pour les deux
 
   var marker = L.circleMarker([lat, lon], {
     radius:6,
@@ -161,15 +152,13 @@ points.forEach(function(p){
     color:"#000",
     weight:1,
     opacity:1,
-    fillOpacity:0.8
+    fillOpacity:1
   });
 
-  var popupText = "<b>"+p[0]+"</b><br/>Ville : "+p[1]+"<br/>Site web : "+(p[4] ? "<a href='"+p[4]+"' target='_blank'>"+p[4]+"</a>" : "N/A");
+  var popupText = "<b>"+p.nom+"</b><br/>Ville : "+p.ville+"<br/>Site web : "+(p.site ? "<a href='"+p.site+"' target='_blank'>"+p.site+"</a>" : "N/A");
   marker.bindPopup(popupText);
-  cluster.addLayer(marker);
+  marker.addTo(map);
 });
-
-map.addLayer(cluster);
 </script>
 </body>
 </html>
